@@ -122,19 +122,19 @@ void all_off(void)
 }
 
 
-/* Powers all 100 lasers simultaneously.
- * Use only if the supply and drivers support that load.
- */
-void all_on(void)
-{
-    unsigned char i;
-
-    for (i = 0; i < COLS; i++)
-        column_set(i, 1);
-
-    for (i = 0; i < ROWS; i++)
-        row_set(i, 1);
-}
+// /* Powers all 100 lasers simultaneously.
+//  * Use only if the supply and drivers support that load.
+//  */
+// void all_on(void)
+// {
+//     unsigned char i;
+// 
+//     for (i = 0; i < COLS; i++)
+//         column_set(i, 1);
+// 
+//     for (i = 0; i < ROWS; i++)
+//         row_set(i, 1);
+// }
 
 
 /* Uncalibrated delay: lower value = faster.
@@ -229,26 +229,27 @@ unsigned int speed_adc_read(void)
 /* The 220-unit reference maps to 10..100 ticks. The longest HTML weight
  * (400) yields 182 ticks, within the byte counter's rollover window.
  */
-unsigned char speed_hold_ticks(unsigned int duration)
-{
-    unsigned int base_ticks;
+// unsigned char speed_hold_ticks(unsigned int duration)
+// {
+//     unsigned int base_ticks;
+// 
+//     base_ticks = 10U + (unsigned int)(
+//         ((unsigned long)speed_adc_read() * 90UL) / 1023UL);
+//     return (unsigned char)((base_ticks * duration + 110U) / 220U);
+// }
+// 
+// void hold_step_with_pot(unsigned int duration)
+// {
+//     unsigned char start;
+//     unsigned char hold_ticks;
+// 
+//     start = speed_ticks;
+//     do
+//     {
+//         hold_ticks = speed_hold_ticks(duration);
+//     } while ((unsigned char)(speed_ticks-start) < hold_ticks);
+// }
 
-    base_ticks = 10U + (unsigned int)(
-        ((unsigned long)speed_adc_read() * 90UL) / 1023UL);
-    return (unsigned char)((base_ticks * duration + 110U) / 220U);
-}
-
-void hold_step_with_pot(unsigned int duration)
-{
-    unsigned char start;
-    unsigned char hold_ticks;
-
-    start = speed_ticks;
-    do
-    {
-        hold_ticks = speed_hold_ticks(duration);
-    } while ((unsigned char)(speed_ticks-start) < hold_ticks);
-}
 
 /* Column changes are independent of the row relays. */
 void show_columns(unsigned int mask)
@@ -356,546 +357,546 @@ void gpio_init(void)
 /* Rows 1 -> 10.
  * Within each row: columns 1 -> 10.
  */
-void orbit_relay(void)
-{
-    unsigned char row;
-    unsigned char column;
-    unsigned int mask;
-
-    for (row = 0; row < ROWS; row++)
-    {
-        select_rows(1U << row);
-        mask = 0U;
-        for (column = 0; column < COLS; column++)
-        {
-            mask |= 1U << column;
-            show_columns(mask);
-            hold_step_with_pot(80U);
-        }
-    }
-    show_columns(0U);
-}
-
-
-/* Rows 10 -> 1.
- * Within each row: columns 10 -> 1.
- */
-void chase_rows_10_to_1_columns_10_to_1(void)
-{
-    unsigned char row_step;
-    unsigned char column_step;
-
-    for (row_step = 0; row_step < ROWS; row_step++)
-    {
-        select_rows(1U << (ROWS - 1 - row_step));
-        for (column_step = 0; column_step < COLS; column_step++)
-        {
-            show_columns(1U << (COLS - 1 - column_step));
-            hold_step_with_pot(80U);
-        }
-    }
-    show_columns(0U);
-}
-
-
-void frame_clear(void)
-{
-    unsigned char row;
-
-    for (row = 0; row < ROWS; row++)
-        circle_frame[row] = 0;
-}
-
-
-/* Arguments use zero-based indices: 0..9. */
-void frame_add(unsigned char circle, unsigned char position)
-{
-    circle_frame[circle] |= (unsigned int)(1U << position);
-}
-
-
-/* Rows with matching columns can stay selected together. Mixed masks
- * are shown as separate relay groups, with a full visible hold per group.
- */
-void frame_show_duration(unsigned int duration)
-{
-    unsigned char row;
-    unsigned char other;
-    unsigned int displayed;
-    unsigned int group;
-    unsigned int columns;
-
-    displayed = 0U;
-    for (row = 0; row < ROWS; row++)
-    {
-        columns = circle_frame[row];
-        if (columns == 0U || (displayed & (1U << row)))
-            continue;
-
-        group = 0U;
-        for (other = row; other < ROWS; other++)
-            if (circle_frame[other] == columns)
-                group |= 1U << other;
-
-        select_rows(group);
-        show_columns(columns);
-        hold_step_with_pot(duration);
-        displayed |= group;
-    }
-
-    if (displayed == 0U)
-    {
-        show_columns(0U);
-        hold_step_with_pot(duration);
-    }
-}
-
-
-void frame_show(void)
-{
-    frame_show_duration(160U);
-}
-
-
-/* Named algorithmic patterns: no mode dispatcher or stored snapshots. */
-
-unsigned int studio_bit(int position)
-{
-    position %= 10;
-    if (position < 0) position += 10;
-    return (unsigned int)(1U << position);
-}
-
-void reverse_fill(void)
-{
-    unsigned char step;
-    unsigned char row;
-    unsigned int mask;
-
-    for (step = 0; step < COLS; step++)
-    {
-        mask = 1023U ^ ((1U << (COLS - 1 - step)) - 1U);
-        for (row = 0; row < ROWS; row++)
-            circle_frame[row] = mask;
-        frame_show_duration(160U);
-    }
-}
-
-
-void center_ends(void)
-{
-    int p;
-    int r;
-
-    for (p = 0; p < 5; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Center to ends. */
-            circle_frame[r] = (r == 4-p || r == 5+p) ? 1023U : 0U;
-        }
-        frame_show_duration(220U);
-    }
-}
-
-void ends_center(void)
-{
-    int p;
-    int r;
-
-    for (p = 0; p < 5; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Ends to center. */
-            circle_frame[r] = (r == p || r == 9-p) ? 1023U : 0U;
-        }
-        frame_show_duration(220U);
-    }
-}
-
-void strobing(void)
-{
-    select_rows(ALL_ROWS_MASK);
-    show_columns(1023U);
-    hold_step_with_pot(320U);
-    show_columns(0U);
-    hold_step_with_pot(320U);
-}
-
-
-void circle_shuttle(void)
-{
-    int p;
-    int r;
-    int q;
-
-    for (p = 0; p < 18; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Circle shuttle. */
-            q = p < 10 ? p : 18-p;
-            circle_frame[r] = r == q ? 1023U : 0U;
-        }
-        frame_show_duration(150U);
-    }
-}
-
-void growing_halo(void)
-{
-    int p;
-    int r;
-    int n;
-
-    for (p = 0; p < 18; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Growing halo. */
-            n = p < 10 ? p+1 : 19-p;
-            circle_frame[r] = (unsigned int)((1U << n)-1U);
-        }
-        frame_show_duration(130U);
-    }
-}
-
-
-void zipper_reveal(void)
-{
-    int p;
-    int r;
-
-    for (p = 0; p < 20; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Zipper reveal. */
-            circle_frame[r] = (p < 10 ? r <= p : r > p-10) ? 1023U : 0U;
-        }
-        frame_show_duration(130U);
-    }
-}
-
-
-void radar_sector(void)
-{
-    int p;
-    int r;
-
-    for (p = 0; p < 10; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Radar sector. */
-            circle_frame[r] = studio_bit(p) | studio_bit(p+1) | studio_bit(p+2);
-        }
-        frame_show_duration(190U);
-    }
-}
-
-
-void mirror_fan(void)
-{
-    int p;
-    int r;
-    int q;
-
-    for (p = 0; p < 10; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Mirror fan. */
-            q = p <= 5 ? p : 10-p;
-            circle_frame[r] = studio_bit(q) | studio_bit(-q);
-        }
-        frame_show_duration(180U);
-    }
-}
-
-
-
-void curtain_open_and_close(void)
-{
-    int p;
-    int r;
-    int q;
-    int n;
-
-    for (p = 0; p < 10; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Curtain open/close: doubled integer distance. */
-            q = p <= 5 ? p : 10-p;
-            n = r < 5 ? 9-2*r : 2*r-9;
-            circle_frame[r] = n >= 2*q ? 1023U : 0U;
-        }
-        frame_show_duration(220U);
-    }
-}
-
-
-
-void expanding_arcs(void)
-{
-    int p;
-    int r;
-    int q;
-    int j;
-    unsigned int mask;
-
-    for (p = 0; p < 10; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Expanding arcs. */
-            q = p <= 5 ? p : 10-p;
-            mask = 0U;
-            for (j = -q; j <= q; j++) mask |= studio_bit(j);
-            circle_frame[r] = mask;
-        }
-        frame_show_duration(180U);
-    }
-}
-
-
-void center_burst(void)
-{
-    int p;
-    int r;
-    int n;
-
-    for (p = 0; p < 7; p++)
-    {
-        for (r = 0; r < ROWS; r++)
-        {
-            /* Center burst. */
-            if (p == 6) { circle_frame[r] = 0U; continue; }
-            n = r < 5 ? 9-2*r : 2*r-9;
-            circle_frame[r] = (p == 5 || n <= 2*p+1) ? 1023U : 0U;
-        }
-        frame_show_duration(p == 5 ? 350U : (p == 6 ? 400U : 170U));
-    }
-}
-
-
-/* Fill all circles together in clockwise order. */
-void synchronized_fill(void)
-{
-    unsigned char step;
-    unsigned char row;
-    unsigned int mask;
-
-    for (step = 0; step < COLS; step++)
-    {
-        mask = (1U << (step + 1)) - 1U;
-        for (row = 0; row < ROWS; row++)
-            circle_frame[row] = mask;
-        frame_show_duration(160U);
-    }
-}
-
-
-/* Two opposite points rotate together on all circles. */
-void opposite_points(void)
-{
-    unsigned char position;
-    unsigned char circle;
-
-    for (position = 0; position < COLS; position++)
-    {
-        frame_clear();
-        for (circle = 0; circle < ROWS; circle++)
-        {
-            frame_add(circle, position);
-            frame_add(circle, (unsigned char)((position + 5) % COLS));
-        }
-        frame_show();
-    }
-}
-
-
-/* Neighboring circles have a one-position offset. */
-
-
-/* Odd circles clockwise; even circles counterclockwise. */
-
-
-/* Grow from position 1 toward position 10, then shrink. */
-void reverse_growing_halo(void)
-{
-    unsigned char step;
-    unsigned char row;
-    unsigned char lit;
-    unsigned int mask;
-
-    for (step = 0; step < 18; step++)
-    {
-        lit = step < 10 ? step + 1 : 19 - step;
-        mask = 1U | (1023U ^ ((1U << (11 - lit)) - 1U));
-        for (row = 0; row < ROWS; row++)
-            circle_frame[row] = mask;
-        frame_show_duration(130U);
-    }
-}
-
-void zipper_turn_off(void)
-{
-    unsigned char step;
-    unsigned char row;
-
-    for (step = 0; step <= ROWS; step++)
-    {
-        for (row = 0; row < ROWS; row++)
-            circle_frame[row] = row < step ? 0U : 1023U;
-        frame_show_duration(130U);
-    }
-}
-
-void reverse_radar_sector(void)
-{
-    unsigned char step;
-    unsigned char row;
-    unsigned int mask;
-
-    for (step = 0; step < COLS; step++)
-    {
-        mask = studio_bit(-step) | studio_bit(1 - step) | studio_bit(2 - step);
-        for (row = 0; row < ROWS; row++)
-            circle_frame[row] = mask;
-        frame_show_duration(190U);
-    }
-}
-
-
-/* Circle pairs move from the ends toward the center:
- * 1/10 -> 2/9 -> 3/8 -> 4/7 -> 5/6.
- * Repeat for each position around the circles.
- */
-void chase_circle_pairs_ends_to_center_positions_1_to_10(void)
-{
-    unsigned char position;
-    unsigned char pair;
-
-    for (position = 0; position < COLS; position++)
-    {
-        for (pair = 0; pair < ROWS / 2; pair++)
-        {
-            frame_clear();
-
-            frame_add(pair, position);
-
-            frame_add(
-                (unsigned char)(ROWS - 1 - pair),
-                position
-            );
-
-            frame_show();
-        }
-    }
-}
-
-
-/* Called at startup with interrupts disabled, before enabling any drivers.
- * Byte programming uses the reset FLASH_CR2/NCR2 programming mode.
- */
-unsigned char eeprom_save_next_boot(unsigned char next_mode)
-{
-    unsigned int timeout;
-    unsigned char status;
-
-    FLASH_DUKR = 0xAE;
-    FLASH_DUKR = 0x56;
-    timeout = EEPROM_WAIT_LIMIT;
-    while (!(FLASH_IAPSR & 0x08))
-    {
-        if (--timeout == 0U)
-        {
-            FLASH_IAPSR &= (unsigned char)~0x08;
-            return 0;
-        }
-    }
-
-    /* Read clears any stale end-of-programming/error flags. */
-    status = FLASH_IAPSR;
-    EEPROM_NEXT_BOOT = next_mode;
-    timeout = EEPROM_WAIT_LIMIT;
-    do
-    {
-        status = FLASH_IAPSR;
-        if (status & 0x05) /* End of programming or write protection error. */
-            break;
-    } while (--timeout != 0U);
-
-    FLASH_IAPSR &= (unsigned char)~0x08; /* Relock data EEPROM. */
-    return ((status & 0x05) == 0x04 && EEPROM_NEXT_BOOT == next_mode);
-}
-
-
-unsigned char select_boot_mode(void)
-{
-    unsigned char mode;
-
-    mode = EEPROM_NEXT_BOOT;
-    if (mode == BOOT_ALL_ON)
-    {
-        eeprom_save_next_boot(BOOT_CHASE_ONLY);
-        return BOOT_ALL_ON;
-    }
-    if (mode == BOOT_CHASE_ONLY)
-    {
-        eeprom_save_next_boot(BOOT_PATTERNS);
-        return BOOT_CHASE_ONLY;
-    }
-
-    /* Fresh/erased EEPROM or invalid data starts with all patterns. */
-    eeprom_save_next_boot(BOOT_ALL_ON);
-    return BOOT_PATTERNS;
-}
-
-
-/* One full circle at a time: 1 -> 10 -> 1.
- * Direct row drive avoids the very low duty cycle of the matrix scanner.
- * All ten columns are enabled, but exactly one row is selected.
- */
-void hold_circle_with_pot(void)
-{
-    hold_step_with_pot(220U);
-}
-
-
-void chase_full_circle_end_to_end(void)
-{
-    unsigned char circle;
-    unsigned char step;
-
-    for (step = 0; step < 19; step++)
-    {
-        circle = step < 10 ? step : 18 - step;
-        select_rows(1U << circle);
-        show_columns(1023U);
-        hold_circle_with_pot();
-    }
-    show_columns(0U);
-}
-
-
-/* Opposite direction: one complete circle, 10 -> 1 only. */
-void chase_full_circle_end_to_end_reverse(void)
-{
-    unsigned char circle;
-    unsigned char step;
-
-    for (step = 0; step < 10; step++)
-    {
-        circle = 9 - step;
-        select_rows(1U << circle);
-        show_columns(1023U);
-        hold_circle_with_pot();
-    }
-    show_columns(0U);
-}
+// void orbit_relay(void)
+// {
+//     unsigned char row;
+//     unsigned char column;
+//     unsigned int mask;
+// 
+//     for (row = 0; row < ROWS; row++)
+//     {
+//         select_rows(1U << row);
+//         mask = 0U;
+//         for (column = 0; column < COLS; column++)
+//         {
+//             mask |= 1U << column;
+//             show_columns(mask);
+//             hold_step_with_pot(80U);
+//         }
+//     }
+//     show_columns(0U);
+// }
+// 
+// 
+// /* Rows 10 -> 1.
+//  * Within each row: columns 10 -> 1.
+//  */
+// void chase_rows_10_to_1_columns_10_to_1(void)
+// {
+//     unsigned char row_step;
+//     unsigned char column_step;
+// 
+//     for (row_step = 0; row_step < ROWS; row_step++)
+//     {
+//         select_rows(1U << (ROWS - 1 - row_step));
+//         for (column_step = 0; column_step < COLS; column_step++)
+//         {
+//             show_columns(1U << (COLS - 1 - column_step));
+//             hold_step_with_pot(80U);
+//         }
+//     }
+//     show_columns(0U);
+// }
+// 
+// 
+// void frame_clear(void)
+// {
+//     unsigned char row;
+// 
+//     for (row = 0; row < ROWS; row++)
+//         circle_frame[row] = 0;
+// }
+// 
+// 
+// /* Arguments use zero-based indices: 0..9. */
+// void frame_add(unsigned char circle, unsigned char position)
+// {
+//     circle_frame[circle] |= (unsigned int)(1U << position);
+// }
+// 
+// 
+// /* Rows with matching columns can stay selected together. Mixed masks
+//  * are shown as separate relay groups, with a full visible hold per group.
+//  */
+// void frame_show_duration(unsigned int duration)
+// {
+//     unsigned char row;
+//     unsigned char other;
+//     unsigned int displayed;
+//     unsigned int group;
+//     unsigned int columns;
+// 
+//     displayed = 0U;
+//     for (row = 0; row < ROWS; row++)
+//     {
+//         columns = circle_frame[row];
+//         if (columns == 0U || (displayed & (1U << row)))
+//             continue;
+// 
+//         group = 0U;
+//         for (other = row; other < ROWS; other++)
+//             if (circle_frame[other] == columns)
+//                 group |= 1U << other;
+// 
+//         select_rows(group);
+//         show_columns(columns);
+//         hold_step_with_pot(duration);
+//         displayed |= group;
+//     }
+// 
+//     if (displayed == 0U)
+//     {
+//         show_columns(0U);
+//         hold_step_with_pot(duration);
+//     }
+// }
+// 
+// 
+// void frame_show(void)
+// {
+//     frame_show_duration(160U);
+// }
+// 
+// 
+// /* Named algorithmic patterns: no mode dispatcher or stored snapshots. */
+// 
+// unsigned int studio_bit(int position)
+// {
+//     position %= 10;
+//     if (position < 0) position += 10;
+//     return (unsigned int)(1U << position);
+// }
+// 
+// void reverse_fill(void)
+// {
+//     unsigned char step;
+//     unsigned char row;
+//     unsigned int mask;
+// 
+//     for (step = 0; step < COLS; step++)
+//     {
+//         mask = 1023U ^ ((1U << (COLS - 1 - step)) - 1U);
+//         for (row = 0; row < ROWS; row++)
+//             circle_frame[row] = mask;
+//         frame_show_duration(160U);
+//     }
+// }
+// 
+// 
+// void center_ends(void)
+// {
+//     int p;
+//     int r;
+// 
+//     for (p = 0; p < 5; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Center to ends. */
+//             circle_frame[r] = (r == 4-p || r == 5+p) ? 1023U : 0U;
+//         }
+//         frame_show_duration(220U);
+//     }
+// }
+// 
+// void ends_center(void)
+// {
+//     int p;
+//     int r;
+// 
+//     for (p = 0; p < 5; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Ends to center. */
+//             circle_frame[r] = (r == p || r == 9-p) ? 1023U : 0U;
+//         }
+//         frame_show_duration(220U);
+//     }
+// }
+// 
+// void strobing(void)
+// {
+//     select_rows(ALL_ROWS_MASK);
+//     show_columns(1023U);
+//     hold_step_with_pot(320U);
+//     show_columns(0U);
+//     hold_step_with_pot(320U);
+// }
+// 
+// 
+// void circle_shuttle(void)
+// {
+//     int p;
+//     int r;
+//     int q;
+// 
+//     for (p = 0; p < 18; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Circle shuttle. */
+//             q = p < 10 ? p : 18-p;
+//             circle_frame[r] = r == q ? 1023U : 0U;
+//         }
+//         frame_show_duration(150U);
+//     }
+// }
+// 
+// void growing_halo(void)
+// {
+//     int p;
+//     int r;
+//     int n;
+// 
+//     for (p = 0; p < 18; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Growing halo. */
+//             n = p < 10 ? p+1 : 19-p;
+//             circle_frame[r] = (unsigned int)((1U << n)-1U);
+//         }
+//         frame_show_duration(130U);
+//     }
+// }
+// 
+// 
+// void zipper_reveal(void)
+// {
+//     int p;
+//     int r;
+// 
+//     for (p = 0; p < 20; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Zipper reveal. */
+//             circle_frame[r] = (p < 10 ? r <= p : r > p-10) ? 1023U : 0U;
+//         }
+//         frame_show_duration(130U);
+//     }
+// }
+// 
+// 
+// void radar_sector(void)
+// {
+//     int p;
+//     int r;
+// 
+//     for (p = 0; p < 10; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Radar sector. */
+//             circle_frame[r] = studio_bit(p) | studio_bit(p+1) | studio_bit(p+2);
+//         }
+//         frame_show_duration(190U);
+//     }
+// }
+// 
+// 
+// void mirror_fan(void)
+// {
+//     int p;
+//     int r;
+//     int q;
+// 
+//     for (p = 0; p < 10; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Mirror fan. */
+//             q = p <= 5 ? p : 10-p;
+//             circle_frame[r] = studio_bit(q) | studio_bit(-q);
+//         }
+//         frame_show_duration(180U);
+//     }
+// }
+// 
+// 
+// 
+// void curtain_open_and_close(void)
+// {
+//     int p;
+//     int r;
+//     int q;
+//     int n;
+// 
+//     for (p = 0; p < 10; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Curtain open/close: doubled integer distance. */
+//             q = p <= 5 ? p : 10-p;
+//             n = r < 5 ? 9-2*r : 2*r-9;
+//             circle_frame[r] = n >= 2*q ? 1023U : 0U;
+//         }
+//         frame_show_duration(220U);
+//     }
+// }
+// 
+// 
+// 
+// void expanding_arcs(void)
+// {
+//     int p;
+//     int r;
+//     int q;
+//     int j;
+//     unsigned int mask;
+// 
+//     for (p = 0; p < 10; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Expanding arcs. */
+//             q = p <= 5 ? p : 10-p;
+//             mask = 0U;
+//             for (j = -q; j <= q; j++) mask |= studio_bit(j);
+//             circle_frame[r] = mask;
+//         }
+//         frame_show_duration(180U);
+//     }
+// }
+// 
+// 
+// void center_burst(void)
+// {
+//     int p;
+//     int r;
+//     int n;
+// 
+//     for (p = 0; p < 7; p++)
+//     {
+//         for (r = 0; r < ROWS; r++)
+//         {
+//             /* Center burst. */
+//             if (p == 6) { circle_frame[r] = 0U; continue; }
+//             n = r < 5 ? 9-2*r : 2*r-9;
+//             circle_frame[r] = (p == 5 || n <= 2*p+1) ? 1023U : 0U;
+//         }
+//         frame_show_duration(p == 5 ? 350U : (p == 6 ? 400U : 170U));
+//     }
+// }
+// 
+// 
+// /* Fill all circles together in clockwise order. */
+// void synchronized_fill(void)
+// {
+//     unsigned char step;
+//     unsigned char row;
+//     unsigned int mask;
+// 
+//     for (step = 0; step < COLS; step++)
+//     {
+//         mask = (1U << (step + 1)) - 1U;
+//         for (row = 0; row < ROWS; row++)
+//             circle_frame[row] = mask;
+//         frame_show_duration(160U);
+//     }
+// }
+// 
+// 
+// /* Two opposite points rotate together on all circles. */
+// void opposite_points(void)
+// {
+//     unsigned char position;
+//     unsigned char circle;
+// 
+//     for (position = 0; position < COLS; position++)
+//     {
+//         frame_clear();
+//         for (circle = 0; circle < ROWS; circle++)
+//         {
+//             frame_add(circle, position);
+//             frame_add(circle, (unsigned char)((position + 5) % COLS));
+//         }
+//         frame_show();
+//     }
+// }
+// 
+// 
+// /* Neighboring circles have a one-position offset. */
+// 
+// 
+// /* Odd circles clockwise; even circles counterclockwise. */
+// 
+// 
+// /* Grow from position 1 toward position 10, then shrink. */
+// void reverse_growing_halo(void)
+// {
+//     unsigned char step;
+//     unsigned char row;
+//     unsigned char lit;
+//     unsigned int mask;
+// 
+//     for (step = 0; step < 18; step++)
+//     {
+//         lit = step < 10 ? step + 1 : 19 - step;
+//         mask = 1U | (1023U ^ ((1U << (11 - lit)) - 1U));
+//         for (row = 0; row < ROWS; row++)
+//             circle_frame[row] = mask;
+//         frame_show_duration(130U);
+//     }
+// }
+// 
+// void zipper_turn_off(void)
+// {
+//     unsigned char step;
+//     unsigned char row;
+// 
+//     for (step = 0; step <= ROWS; step++)
+//     {
+//         for (row = 0; row < ROWS; row++)
+//             circle_frame[row] = row < step ? 0U : 1023U;
+//         frame_show_duration(130U);
+//     }
+// }
+// 
+// void reverse_radar_sector(void)
+// {
+//     unsigned char step;
+//     unsigned char row;
+//     unsigned int mask;
+// 
+//     for (step = 0; step < COLS; step++)
+//     {
+//         mask = studio_bit(-step) | studio_bit(1 - step) | studio_bit(2 - step);
+//         for (row = 0; row < ROWS; row++)
+//             circle_frame[row] = mask;
+//         frame_show_duration(190U);
+//     }
+// }
+// 
+// 
+// /* Circle pairs move from the ends toward the center:
+//  * 1/10 -> 2/9 -> 3/8 -> 4/7 -> 5/6.
+//  * Repeat for each position around the circles.
+//  */
+// void chase_circle_pairs_ends_to_center_positions_1_to_10(void)
+// {
+//     unsigned char position;
+//     unsigned char pair;
+// 
+//     for (position = 0; position < COLS; position++)
+//     {
+//         for (pair = 0; pair < ROWS / 2; pair++)
+//         {
+//             frame_clear();
+// 
+//             frame_add(pair, position);
+// 
+//             frame_add(
+//                 (unsigned char)(ROWS - 1 - pair),
+//                 position
+//             );
+// 
+//             frame_show();
+//         }
+//     }
+// }
+// 
+// 
+// /* Called at startup with interrupts disabled, before enabling any drivers.
+//  * Byte programming uses the reset FLASH_CR2/NCR2 programming mode.
+//  */
+// unsigned char eeprom_save_next_boot(unsigned char next_mode)
+// {
+//     unsigned int timeout;
+//     unsigned char status;
+// 
+//     FLASH_DUKR = 0xAE;
+//     FLASH_DUKR = 0x56;
+//     timeout = EEPROM_WAIT_LIMIT;
+//     while (!(FLASH_IAPSR & 0x08))
+//     {
+//         if (--timeout == 0U)
+//         {
+//             FLASH_IAPSR &= (unsigned char)~0x08;
+//             return 0;
+//         }
+//     }
+// 
+//     /* Read clears any stale end-of-programming/error flags. */
+//     status = FLASH_IAPSR;
+//     EEPROM_NEXT_BOOT = next_mode;
+//     timeout = EEPROM_WAIT_LIMIT;
+//     do
+//     {
+//         status = FLASH_IAPSR;
+//         if (status & 0x05) /* End of programming or write protection error. */
+//             break;
+//     } while (--timeout != 0U);
+// 
+//     FLASH_IAPSR &= (unsigned char)~0x08; /* Relock data EEPROM. */
+//     return ((status & 0x05) == 0x04 && EEPROM_NEXT_BOOT == next_mode);
+// }
+// 
+// 
+// unsigned char select_boot_mode(void)
+// {
+//     unsigned char mode;
+// 
+//     mode = EEPROM_NEXT_BOOT;
+//     if (mode == BOOT_ALL_ON)
+//     {
+//         eeprom_save_next_boot(BOOT_CHASE_ONLY);
+//         return BOOT_ALL_ON;
+//     }
+//     if (mode == BOOT_CHASE_ONLY)
+//     {
+//         eeprom_save_next_boot(BOOT_PATTERNS);
+//         return BOOT_CHASE_ONLY;
+//     }
+// 
+//     /* Fresh/erased EEPROM or invalid data starts with all patterns. */
+//     eeprom_save_next_boot(BOOT_ALL_ON);
+//     return BOOT_PATTERNS;
+// }
+// 
+// 
+// /* One full circle at a time: 1 -> 10 -> 1.
+//  * Direct row drive avoids the very low duty cycle of the matrix scanner.
+//  * All ten columns are enabled, but exactly one row is selected.
+//  */
+// void hold_circle_with_pot(void)
+// {
+//     hold_step_with_pot(220U);
+// }
+// 
+// 
+// void chase_full_circle_end_to_end(void)
+// {
+//     unsigned char circle;
+//     unsigned char step;
+// 
+//     for (step = 0; step < 19; step++)
+//     {
+//         circle = step < 10 ? step : 18 - step;
+//         select_rows(1U << circle);
+//         show_columns(1023U);
+//         hold_circle_with_pot();
+//     }
+//     show_columns(0U);
+// }
+// 
+// 
+// /* Opposite direction: one complete circle, 10 -> 1 only. */
+// void chase_full_circle_end_to_end_reverse(void)
+// {
+//     unsigned char circle;
+//     unsigned char step;
+// 
+//     for (step = 0; step < 10; step++)
+//     {
+//         circle = 9 - step;
+//         select_rows(1U << circle);
+//         show_columns(1023U);
+//         hold_circle_with_pot();
+//     }
+//     show_columns(0U);
+// }
 
 
 /* Previous matrix playlist, retained for reference. */

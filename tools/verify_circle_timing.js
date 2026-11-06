@@ -1,6 +1,6 @@
 /* Timer-driven hold tests with simulated ISR ticks and live POT input. */
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const main=fs.readFileSync(require('path').join(__dirname,'../main.c'),'utf8');
+const main=fs.readFileSync(require('path').join(__dirname,'../main.c'),'utf8').replace(/^\/\/ /gm,'');
 let code=main.slice(main.indexOf('unsigned char speed_hold_ticks'),main.indexOf('/* Column changes'))
  .replace('unsigned char speed_hold_ticks(unsigned int duration)','function speed_hold_ticks(duration)')
  .replace('void hold_step_with_pot(unsigned int duration)','function hold_step_with_pot(duration)')
