@@ -1,6 +1,6 @@
 ACTIVE FIRMWARE
 All ten row relays stay on. The MOSFET columns repeat the 35 effects
-from 10_Channel_EEPROM in their original order and repeat counts. PE6
+from 10_Channel_EEPROM in their original order, once each per cycle. PE6
 controls variable column delays. The previous matrix boot logic and its
 EEPROM mode changes are archived in comments in main.c.
 

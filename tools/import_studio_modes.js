@@ -6,7 +6,7 @@ const firmware=fs.readFileSync(path.join(root,'main.c'),'utf8');
 // Validate the archived matrix implementation separately from the active port.
 const main=firmware.split('/* Port of the 10_Channel_EEPROM playlist.')[0].replace(/^\/\/ /gm,'');
 const ref=vm.createContext({});
-vm.runInContext(html.slice(html.indexOf('const patterns=['),html.indexOf('let previewBackup=null;'))+
+vm.runInContext(html.slice(html.indexOf('const patterns=[',html.indexOf('id="archived-matrix-presets"')),html.indexOf('</script>',html.indexOf('id="archived-matrix-presets"')))+
  '\nglobalThis.presets=patterns.map(([name,make])=>({name,frames:make()}));',ref,{timeout:1000});
 const presets=JSON.parse(JSON.stringify(ref.presets));
 const names=presets.map(p=>p.name.toLowerCase().replace(/[^a-z0-9]+/g,'_'));

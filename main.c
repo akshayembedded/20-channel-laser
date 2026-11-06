@@ -998,6 +998,16 @@ static unsigned int sequence_column_bit(int position)
     return 1U << position;
 }
 
+/* Remap the second half of the logical mirror to the physical columns:
+ * 1/10, 2/9, 3/8, 4/7, 5/6.
+ */
+static const unsigned char mirror_columns[COLS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+static int mirror_column(int position)
+{
+    return mirror_columns[position];
+}
+
 /* Forward Fill / Forward Empty. */
 void mode_forward_fill_forward_empty(void)
 {
@@ -1224,23 +1234,23 @@ void mode_inward_mirror_strobe_fill(void)
 	for(i=0;i<COLS/2;i++)
 	{
 		
-		sequence_column_on(i);
-    sequence_column_on(COLS-1-i);
+		sequence_column_on(mirror_column(i));
+    sequence_column_on(mirror_column(COLS-1-i));
     chase_delay(40);
 
-    sequence_column_off(i);
-    sequence_column_off(COLS-1-i);
+    sequence_column_off(mirror_column(i));
+    sequence_column_off(mirror_column(COLS-1-i));
 		chase_delay(column_sequence_delay());
 		
-		sequence_column_on(i);
-		sequence_column_on(COLS-1-i);
+		sequence_column_on(mirror_column(i));
+		sequence_column_on(mirror_column(COLS-1-i));
 		
 	}
 	for(i=COLS-1;i>=COLS/2;i--)
 	{
 	
-		sequence_column_off(i);
-		sequence_column_off(COLS-1-i);
+		sequence_column_off(mirror_column(i));
+		sequence_column_off(mirror_column(COLS-1-i));
 		chase_delay(column_sequence_delay());
 	}
 
@@ -1257,8 +1267,8 @@ void mode_outward_mirror_fill_inward_empty(void)
         // Fill from center outward
         for(i = COLS/2 - 1; i >= 0; i--)
         {
-            sequence_column_on(i);
-            sequence_column_on(COLS - 1 - i);
+            sequence_column_on(mirror_column(i));
+            sequence_column_on(mirror_column(COLS - 1 - i));
 
             chase_delay(column_sequence_delay());
         }
@@ -1266,8 +1276,8 @@ void mode_outward_mirror_fill_inward_empty(void)
         // Unfill from ends inward
         for(i = 0; i < COLS/2; i++)
         {
-            sequence_column_off(i);
-            sequence_column_off(COLS - 1 - i);
+            sequence_column_off(mirror_column(i));
+            sequence_column_off(mirror_column(COLS - 1 - i));
 
             chase_delay(column_sequence_delay());
         }
@@ -1388,13 +1398,13 @@ void mode_inward_outward_mirror_strobe_chase(void)
     // Inward
     for(i = 0; i < COLS/2; i++)
     {
-        sequence_column_on(i);
-        sequence_column_on(COLS-1-i);
+        sequence_column_on(mirror_column(i));
+        sequence_column_on(mirror_column(COLS-1-i));
 
         chase_delay(100);
 
-        sequence_column_off(i);
-        sequence_column_off(COLS-1-i);
+        sequence_column_off(mirror_column(i));
+        sequence_column_off(mirror_column(COLS-1-i));
 
         chase_delay(column_sequence_delay());
     }
@@ -1402,13 +1412,13 @@ void mode_inward_outward_mirror_strobe_chase(void)
     // Outward
     for(i = COLS/2-1; i >= 0; i--)
     {
-        sequence_column_on(i);
-        sequence_column_on(COLS-1-i);
+        sequence_column_on(mirror_column(i));
+        sequence_column_on(mirror_column(COLS-1-i));
 
         chase_delay(100);
 
-        sequence_column_off(i);
-        sequence_column_off(COLS-1-i);
+        sequence_column_off(mirror_column(i));
+        sequence_column_off(mirror_column(COLS-1-i));
 
         chase_delay(column_sequence_delay());
     }
@@ -1425,13 +1435,13 @@ void mode_inward_mirror_strobe_chase()
 
         for(i = 0; i < COLS / 2; i++)
         {
-            sequence_column_on(i);
-            sequence_column_on(COLS - 1 - i);
+            sequence_column_on(mirror_column(i));
+            sequence_column_on(mirror_column(COLS - 1 - i));
 
             chase_delay(100);
 
-            sequence_column_off(i);
-            sequence_column_off(COLS - 1 - i);
+            sequence_column_off(mirror_column(i));
+            sequence_column_off(mirror_column(COLS - 1 - i));
 
             chase_delay(column_sequence_delay());
         }
@@ -1447,11 +1457,11 @@ void mode_outward_mirror_strobe_chase(void)
     sequence_columns_off();
     for (i = COLS/2 - 1; i >= 0; i--)
     {
-        sequence_column_on(i);
-        sequence_column_on(COLS - 1 - i);
+        sequence_column_on(mirror_column(i));
+        sequence_column_on(mirror_column(COLS - 1 - i));
         chase_delay(100);
-        sequence_column_off(i);
-        sequence_column_off(COLS - 1 - i);
+        sequence_column_off(mirror_column(i));
+        sequence_column_off(mirror_column(COLS - 1 - i));
         chase_delay(column_sequence_delay());
     }
     sequence_columns_off();
@@ -1728,7 +1738,7 @@ void mode_twin_chase_cross_through(void)
 {
     int position;
     for (position = 0; position < COLS; position++) {
-        show_columns(sequence_column_bit(position) | sequence_column_bit(COLS-1-position));
+        show_columns(sequence_column_bit(mirror_column(position)) | sequence_column_bit(mirror_column(COLS-1-position)));
         chase_delay(column_sequence_delay());
     }
     sequence_columns_off();
@@ -1740,7 +1750,7 @@ void mode_center_out_strobe_fill(void)
     unsigned int mask, pair;
     mask = 0U;
     for (position = COLS/2-1; position >= 0; position--) {
-        pair = sequence_column_bit(position) | sequence_column_bit(COLS-1-position);
+        pair = sequence_column_bit(mirror_column(position)) | sequence_column_bit(mirror_column(COLS-1-position));
         show_columns(mask | pair);
         chase_delay(100);
         show_columns(mask);
@@ -1757,7 +1767,7 @@ void mode_dark_pair_mirror_chase(void)
     int step, position;
     for (step = 0; step < COLS-1; step++) {
         position = step < COLS/2 ? step : COLS-2-step;
-        show_columns(((1U << COLS)-1U) ^ (sequence_column_bit(position) | sequence_column_bit(COLS-1-position)));
+        show_columns(((1U << COLS)-1U) ^ (sequence_column_bit(mirror_column(position)) | sequence_column_bit(mirror_column(COLS-1-position))));
         chase_delay(column_sequence_delay());
     }
     sequence_columns_off();
@@ -1770,10 +1780,10 @@ void mode_two_ended_chase_and_stack(void)
     mask = 0U;
     for (depth = 0; depth < COLS/2; depth++) {
         for (position = 0; position <= COLS/2-1-depth; position++) {
-            show_columns(mask | sequence_column_bit(position) | sequence_column_bit(COLS-1-position));
+            show_columns(mask | sequence_column_bit(mirror_column(position)) | sequence_column_bit(mirror_column(COLS-1-position)));
             chase_delay(column_sequence_delay());
         }
-        mask |= sequence_column_bit(COLS/2-1-depth) | sequence_column_bit(COLS/2+depth);
+        mask |= sequence_column_bit(mirror_column(COLS/2-1-depth)) | sequence_column_bit(mirror_column(COLS/2+depth));
         show_columns(mask);
         chase_delay(column_sequence_delay());
     }
@@ -1788,7 +1798,7 @@ void mode_expanding_contracting_band(void)
         width = step < COLS/2 ? step+1 : COLS-1-step;
         mask = 0U;
         for (position = 0; position < width; position++)
-            mask |= sequence_column_bit(COLS/2-1-position) | sequence_column_bit(COLS/2+position);
+            mask |= sequence_column_bit(mirror_column(COLS/2-1-position)) | sequence_column_bit(mirror_column(COLS/2+position));
         show_columns(mask);
         chase_delay(column_sequence_delay());
     }
@@ -1835,10 +1845,9 @@ void mode_half_row_five_strobe_alternate(void)
 void mode_bouncing_dark_window(void)
 {
     int step, position;
-    for (step = 0; step < 2*COLS-6; step++) {
-        position = step < COLS-2 ? step : 2*COLS-6-step;
-        show_columns(((1U << COLS)-1U) ^ (sequence_column_bit(position) |
-                     sequence_column_bit(position+1) | sequence_column_bit(position+2)));
+    for (step = 0; step < 2*COLS-2; step++) {
+        position = step < COLS ? step : 2*COLS-2-step;
+        show_columns(((1U << COLS)-1U) ^ sequence_column_bit(position));
         chase_delay(column_sequence_delay());
     }
     sequence_columns_off();
@@ -1876,10 +1885,10 @@ void mode_inward_outward_mirror_two_led_strobe_chase(void)
         for (step = 0; step < COLS/2 - 1; step++)
         {
             position = direction == 0 ? step : COLS/2 - 2 - step;
-            sequence_column_on(position);
-            sequence_column_on(position+1);
-            sequence_column_on(COLS-1-position);
-            sequence_column_on(COLS-2-position);
+            sequence_column_on(mirror_column(position));
+            sequence_column_on(mirror_column(position+1));
+            sequence_column_on(mirror_column(COLS-1-position));
+            sequence_column_on(mirror_column(COLS-2-position));
             chase_delay(100);
             sequence_columns_off();
             chase_delay(column_sequence_delay());
@@ -1889,8 +1898,6 @@ void mode_inward_outward_mirror_two_led_strobe_chase(void)
 
 void main(void)
 {
-    unsigned char repeat;
-
     #asm
         sim
     #endasm
@@ -1909,70 +1916,39 @@ void main(void)
     while (1)
     {
         mode_forward_three_strobe_fill();
-        for (repeat = 0; repeat < 10; repeat++)
-            mode_all_leds_strobe();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_inward_mirror_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_inward_outward_mirror_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_bouncing_dark_window();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_ping_pong_two_led_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_forward_single_led_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_outward_mirror_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_dark_pair_mirror_chase();
+        mode_all_leds_strobe();
+        mode_inward_mirror_strobe_chase();
+        mode_inward_outward_mirror_strobe_chase();
+        mode_bouncing_dark_window();
+        mode_ping_pong_two_led_strobe_chase();
+        mode_forward_single_led_chase();
+        mode_outward_mirror_strobe_chase();
+        mode_dark_pair_mirror_chase();
         mode_reverse_strobe_chain_fill();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_triple_strobe_burst_pause();
+        mode_triple_strobe_burst_pause();
         mode_ping_pong_triple_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_comet_ping_pong();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_center_out_strobe_fill();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_inward_outward_mirror_two_led_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_outward_mirror_fill_inward_empty();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_inward_mirror_strobe_fill();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_odd_eight_blinks_then_even_eight_blinks();
+        mode_comet_ping_pong();
+        mode_center_out_strobe_fill();
+        mode_inward_outward_mirror_two_led_strobe_chase();
+        mode_outward_mirror_fill_inward_empty();
+        mode_inward_mirror_strobe_fill();
+        mode_odd_eight_blinks_then_even_eight_blinks();
         mode_forward_strobe_chain_fill();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_ping_pong_dark_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_reverse_single_led_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_forward_two_led_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_forward_fill_forward_empty();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_two_ended_chase_and_stack();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_ping_pong_three_led_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_forward_reverse_ripple_fill();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_expanding_contracting_band();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_forward_fill_reverse_empty();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_twin_chase_cross_through();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_half_row_ten_strobe_alternate();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_half_row_five_strobe_alternate();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_even_ten_blinks_then_odd_ten_blinks();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_ping_pong_split_pair_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_ping_pong_double_strobe_chase();
-        for (repeat = 0; repeat < 3; repeat++)
-            mode_split_odd_even_double_strobe_fill();
+        mode_ping_pong_dark_chase();
+        mode_reverse_single_led_chase();
+        mode_forward_two_led_chase();
+        mode_forward_fill_forward_empty();
+        mode_two_ended_chase_and_stack();
+        mode_ping_pong_three_led_strobe_chase();
+        mode_forward_reverse_ripple_fill();
+        mode_expanding_contracting_band();
+        mode_forward_fill_reverse_empty();
+        mode_twin_chase_cross_through();
+        mode_half_row_ten_strobe_alternate();
+        mode_half_row_five_strobe_alternate();
+        mode_even_ten_blinks_then_odd_ten_blinks();
+        mode_ping_pong_split_pair_strobe_chase();
+        mode_ping_pong_double_strobe_chase();
+        mode_split_odd_even_double_strobe_fill();
     }
 }
