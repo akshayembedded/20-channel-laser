@@ -1,0 +1,20 @@
+[
+  "synchronized_fill",
+  "reverse_fill",
+  "opposite_points",
+  "center_ends",
+  "ends_center",
+  "strobing",
+  "circle_shuttle",
+  "growing_halo",
+  "zipper_reveal",
+  "radar_sector",
+  "mirror_fan",
+  "curtain_open_and_close",
+  "orbit_relay",
+  "expanding_arcs",
+  "center_burst",
+  "reverse_growing_halo",
+  "zipper_turn_off",
+  "reverse_radar_sector"
+]

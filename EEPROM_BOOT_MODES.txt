@@ -1,0 +1,32 @@
+EEPROM THREE-BOOT CYCLE
+======================
+Uses internal EEPROM byte 0x4000; no external chip is required.
+
+1. Full sequence: all 22 patterns run one by one and repeat until reset.
+2. All-on: columns stay high and rows stay low until reset.
+3. Four chases repeat in this order:
+   orbit_relay();
+   chase_rows_10_to_1_columns_10_to_1();
+   chase_full_circle_end_to_end();
+   chase_full_circle_end_to_end_reverse();
+4. Return to full sequence and continue the three-boot cycle.
+
+Fresh/erased/invalid EEPROM starts with the full sequence.
+Markers: 0x5A = full sequence, 0xA5 = all-on, 0x3C = four chases.
+The next marker is written once at startup. Every reset or power cycle
+advances the mode; no EEPROM writes occur inside any pattern loop.
+Existing EEPROM markers are retained across firmware updates if the
+programmer preserves EEPROM. Erase data EEPROM to restart at boot 1.
+
+ADC/timer interrupts run on both animation boots. Each full-circle chase
+holds one complete circle for about 100 ms..1 second using the live POT.
+Forward: 1 -> 10 -> 1. Reverse: 10 -> 1 only.
+All-on mode does not use POT speed control.
+
+Writes use DUKR keys 0xAE/0x56, bounded status polling, readback and relock.
+A write failure or power loss during programming can disrupt a toggle.
+Host tests: node tools/verify_boot_modes.js
+            node tools/import_studio_modes.js --check
+            node tools/verify_circle_timing.js
+Cosmic compilation and hardware timing tests remain required.
+Reference: https://www.st.com/resource/en/reference_manual/rm0016-stm8s-series-and-stm8af-series-8bit-microcontrollers-stmicroelectronics.pdf

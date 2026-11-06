@@ -1,0 +1,35 @@
+HTML MODE COMPARISON
+====================
+The full firmware sequence has 22 patterns. The first 18 match the HTML
+presets in order, frame masks, and relative timing weights. Four additional
+firmware chases follow. The live ADC controls step timing.
+
+Synchronized fill = synchronized_fill()
+Reverse fill = reverse_fill()
+Opposite points = opposite_points()
+Center → ends = center_ends()
+Ends → center = ends_center()
+Strobing = strobing()
+Circle shuttle = circle_shuttle()
+Growing halo = growing_halo()
+Zipper reveal = zipper_reveal()
+Radar sector = radar_sector()
+Mirror fan = mirror_fan()
+Curtain open and close = curtain_open_and_close()
+Orbit relay = orbit_relay()
+Expanding arcs = expanding_arcs()
+Center burst = center_burst()
+Reverse growing halo = reverse_growing_halo()
+Zipper turn-off = zipper_turn_off()
+Reverse radar sector = reverse_radar_sector()
+
+Firmware-only chases:
+chase_rows_10_to_1_columns_10_to_1()
+chase_circle_pairs_ends_to_center_positions_1_to_10()
+chase_full_circle_end_to_end()
+chase_full_circle_end_to_end_reverse()
+
+Columns enable high. Rows enable low. Row 2 uses PD7.
+Strobing holds the rows enabled through both phases and switches columns.
+Verify: node tools/import_studio_modes.js --check
+Build with Cosmic/STVD and verify timing and brightness on the board.

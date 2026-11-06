@@ -1,0 +1,193 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Laser Animation Studio</title><style>
+:root {
+  color-scheme: dark;
+  --bg: #0a1019;
+  --panel: #111b29;
+  --line: #26354a;
+  --muted: #a4b6cc;
+  --accent: #ff5968;
+  --gutter: clamp(12px, 3vw, 42px);
+  --gap: clamp(12px, 2vw, 20px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: #edf3fc; font: 14px/1.45 system-ui, sans-serif; }
+header { border-bottom: 1px solid var(--line); }
+.header-inner, main { max-width: 1550px; margin-inline: auto; padding-inline: var(--gutter); }
+.header-inner { display: flex; justify-content: space-between; align-items: center; gap: var(--gap); padding-block: 22px; }
+main { padding-block: var(--gap); }
+h1 { margin: 3px 0; font-size: clamp(23px, 4vw, 32px); letter-spacing: -.035em; }
+h2 { margin: 0; font-size: 16px; }
+p { margin: 6px 0; color: var(--muted); line-height: 1.55; }
+.eyebrow { color: var(--accent); font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+.badge { border: 1px solid var(--line); border-radius: 30px; padding: 8px 12px; color: #8cddb9; white-space: nowrap; }
+.panel { min-width: 0; padding: clamp(12px, 2vw, 20px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.rig-panel { margin-bottom: var(--gap); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: var(--gap); align-items: start; }
+.editor { display: grid; gap: var(--gap); min-width: 0; }
+.editor .panel > h2 { margin-bottom: 12px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.space { justify-content: space-between; }
+.rig-heading { align-items: start; }
+.playback { gap: 8px 12px; }
+button, select, input { max-width: 100%; min-width: 0; font: inherit; color: inherit; accent-color: var(--accent); }
+button, select, input:not([type=checkbox]):not([type=range]) { min-height: 38px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 8px; background: #182539; }
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: #7995b9; }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #140d15; font-weight: 700; }
+button.quiet { background: transparent; }
+.danger { color: #ff8791; }
+:focus-visible { outline: 2px solid #a8ceff; outline-offset: 2px; }
+input[type=number] { width: 84px; }
+input[type=text] { width: min(170px, 100%); }
+input[type=range] { width: 108px; margin: 0; }
+input[type=checkbox] { margin: 0; }
+label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; color: var(--muted); font-size: 12px; }
+label input, label select { color: #edf3fc; }
+#speedLabel { min-width: 3.6ch; text-align: right; }
+.rig { margin-block: 14px 10px; }
+#rig { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.rig-circle { display: block; width: 100%; max-width: 156px; height: auto; justify-self: center; }
+.ring { fill: none; stroke: #2a3c52; stroke-width: 2; }
+.laser { fill: #253044; stroke: #627897; stroke-width: 1.3; cursor: pointer; transition: fill .07s; }
+.laser.on { fill: var(--accent); stroke: #ffb9c0; filter: drop-shadow(0 0 6px #ff5968); }
+.laser:hover, .laser:focus-visible { stroke: white; stroke-width: 3; }
+svg text { fill: var(--muted); font-size: 11px; text-anchor: middle; pointer-events: none; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 8px 3px 12px; margin: 4px -3px 10px; }
+button.frame { flex: 0 0 122px; text-align: left; padding: 10px; background: #152134; overflow-wrap: anywhere; }
+button.frame.selected { border-color: var(--accent); background: #302030; }
+.frame small { display: block; margin-top: 5px; color: var(--muted); }
+.hint, .status { font-size: 12px; }
+.toolgroup { margin-top: 14px; }
+.toolgroup h3 { font-size: 12px; color: var(--muted); }
+.presets { display: grid; gap: 9px; max-height: min(55vh, 520px); overflow: auto; padding: 4px; margin: 10px -4px 0; scrollbar-gutter: stable; }
+.pattern-card { display: flex; flex-direction: column; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 10px; }
+.pattern-card h3 { margin: 0; font-size: 14px; }
+.pattern-card p { font-size: 12px; }
+.pattern-card .bar { margin-top: auto; padding-top: 4px; }
+.status { color: #8cddb9; min-height: 18px; margin-top: 8px; }
+.playhead { color: #ff8591; }
+.file { display: none; }
+footer { margin-top: var(--gap); color: var(--muted); font-size: 12px; }
+@media (max-width: 1199px) { #rig { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 850px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  #rig { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .presets { grid-template-columns: minmax(0, 1fr); }
+  .header-inner { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .playback { width: 100%; }
+}
+</style></head><body><header><div class="header-inner"><div><div class="eyebrow">100 LASERS · 10 CIRCLES</div><h1>Laser Animation Studio</h1><p>Draw a moment. Build a sequence. Watch it move.</p></div><span class="badge">● Columns active high · Rows active low</span></div></header><main>
+<section class="panel rig-panel"><div class="bar space rig-heading"><div><h2>Your laser rig</h2><p class="hint">Click a red point to toggle it. Circle = row · Position = column · Position 1 is at the top, clockwise.</p></div><div class="bar playback"><button id="play" class="primary">▶ Play</button><button id="stop">Stop</button><label><input type="checkbox" id="loop" checked> Loop</label><label>Speed <input type="range" id="speed" min="0.25" max="3" step=".25" value="1"> <span id="speedLabel">1×</span></label></div></div><div class="rig"><div id="rig" role="group" aria-label="Ten circles with ten laser positions each"></div></div><div class="bar space"><span id="summary" class="hint"></span><span id="playhead" class="playhead"></span></div></section>
+<div class="layout"><div class="editor"><section class="panel"><div class="bar space"><h2>Animation timeline</h2><span id="total" class="hint"></span></div><div id="timeline" class="chips" tabindex="0" role="region" aria-label="Animation frames"></div><div class="bar"><button id="add">＋ Blank frame</button><button id="duplicate">Duplicate</button><button id="previous">← Move</button><button id="next">Move →</button><button id="delete" class="danger">Delete</button><button id="undo" class="quiet">Undo</button></div><div class="toolgroup bar"><label>Frame label <input id="label" type="text" maxlength="60"></label><label>Duration <input id="duration" type="number" min="20" max="10000" step="20"> ms</label><button id="applyDuration">Apply duration to all</button></div></section>
+<section class="panel"><h2>Paint the current frame</h2><div class="bar"><label>Circle <select id="circle"></select></label><button id="fillCircle">Fill circle</button><button id="clearCircle">Clear circle</button><button id="odd">Odd positions</button><button id="even">Even positions</button><button id="all">All lasers</button><button id="clear">Clear frame</button></div><p class="hint">Odd positions: 1, 3, 5, 7, 9 · Even positions: 2, 4, 6, 8, 10</p></section>
+<section class="panel"><h2>Save & export</h2><div class="bar"><label>Project <input type="text" id="projectName" value="My laser animation" maxlength="60"></label><button id="save">Download project</button><button id="load">Import project</button><button class="primary" id="export">Export STM8 C</button><input class="file" type="file" id="import" accept=".json,application/json"></div><p class="hint">Autosaved in this browser. C export uses the current pin map and multiplexes mixed frames. Preview durations are milliseconds; firmware timing uses adjustable loop units and needs calibration on your board.</p><label>C hold loops per preview millisecond <input type="number" id="calibration" value="1" min=".01" max="100" step=".1"></label><div id="status" class="status" role="status"></div></section></div>
+<aside class="panel"><h2>Start with a pattern</h2><p class="hint">Preview a named animation on the rig, or add it to your timeline. Preview is temporary; Stop restores your project.</p><div class="presets" id="presets" tabindex="0" role="region" aria-label="Pattern presets"></div><div class="toolgroup"><h3>How it maps to your board</h3><p class="hint">Circles 1–10: OUT11–OUT20<br>Positions 1–10: OUT1–OUT10<br>Column enable: HIGH<br>Row enable: LOW</p><p class="hint">Multiple red points show the intended appearance. The exported code scans mixed frames. For full-rig on/off frames, it holds the rows enabled and switches the columns.</p></div></aside></div><footer>Space: play / pause · Arrow keys: select frame · Maximum 500 frames per project</footer></main>
+<script>
+const $=id=>document.getElementById(id);
+const blank=(label='Frame',ms=160)=>({label,ms,masks:Array(10).fill(0)});
+let frames=[blank('Start')],selected=0,playing=false,timer=null,history=[],projectName='My laser animation';
+const key='laser-studio-v1';let storageOK=true;
+function validate(d){if(!d||!Array.isArray(d.frames)||d.frames.length<1||d.frames.length>500)throw Error('Project must contain 1–500 frames.');return d.frames.map(f=>{if(!Array.isArray(f.masks)||f.masks.length!==10||!f.masks.every(n=>Number.isInteger(n)&&n>=0&&n<=1023)||!Number.isFinite(f.ms)||f.ms<20||f.ms>10000)throw Error('Invalid frame data.');return {label:String(f.label||'Frame').slice(0,60),ms:f.ms,masks:[...f.masks]};});}
+try{let d=JSON.parse(localStorage.getItem(key));if(d){frames=validate(d);projectName=String(d.name||projectName);}}catch(e){}
+function persist(){try{localStorage.setItem(key,JSON.stringify({version:1,name:projectName,frames}));}catch(e){storageOK=false;$('status').textContent='Browser autosave unavailable. Download your project to keep it.';}}
+function checkpoint(){pause();history.push(JSON.stringify({frames,selected,projectName}));if(history.length>40)history.shift();}
+function change(fn){checkpoint();fn();persist();render();}
+function count(f){return f.masks.reduce((a,n)=>a+n.toString(2).split('1').length-1,0);}
+function render(){renderRig();$('timeline').replaceChildren();frames.forEach((f,i)=>{let b=document.createElement('button');b.className='frame'+(i===selected?' selected':'');b.textContent=(i+1)+'. '+f.label;let sub=document.createElement('small');sub.textContent=f.ms+' ms · '+count(f)+' lasers';b.append(sub);b.onclick=()=>{pause();selected=i;render();};$('timeline').append(b);});$('duration').value=frames[selected].ms;$('label').value=frames[selected].label;$('projectName').value=projectName;$('total').textContent=frames.length+' frames · '+(frames.reduce((a,f)=>a+f.ms,0)/1000).toFixed(2)+' s';$('summary').textContent=count(frames[selected])+' of 100 lasers selected';$('playhead').textContent='Frame '+(selected+1)+' / '+frames.length;$('delete').disabled=frames.length===1;$('undo').disabled=!history.length;$('previous').disabled=selected===0;$('next').disabled=selected===frames.length-1;$('add').disabled=$('duplicate').disabled=frames.length>=500;}
+function renderRig(){const rig=$('rig');rig.replaceChildren();let svg;const ns='http://www.w3.org/2000/svg';function elem(tag,attrs){let e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));svg.append(e);return e;}for(let r=0;r<10;r++){svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 130 136');svg.setAttribute('class','rig-circle');rig.append(svg);let x=65,y=65;elem('circle',{cx:x,cy:y,r:45,class:'ring'});let t=elem('text',{x,y:y+4});t.textContent='CIRCLE '+(r+1);for(let c=0;c<10;c++){let a=c*Math.PI/5-Math.PI/2,px=x+45*Math.cos(a),py=y+45*Math.sin(a);let dot=elem('circle',{cx:px,cy:py,r:6.5,class:'laser'+((frames[selected].masks[r]&(1<<c))?' on':''),tabindex:0,role:'button','aria-label':'Circle '+(r+1)+', position '+(c+1),'aria-pressed':Boolean(frames[selected].masks[r]&(1<<c))});let title=document.createElementNS(ns,'title');title.textContent='Circle '+(r+1)+' · Position '+(c+1);dot.append(title);dot.onclick=()=>change(()=>frames[selected].masks[r]^=1<<c);dot.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();dot.onclick();}};let n=elem('text',{x:x+59*Math.cos(a),y:y+59*Math.sin(a)+4});n.textContent=c+1;}}}
+function pause(){playing=false;clearTimeout(timer);$('play').textContent='▶ Play';}
+function tick(){if(!playing)return;timer=setTimeout(()=>{if(selected===frames.length-1){if(!$('loop').checked){pause();return;}selected=0;}else selected++;render();tick();},frames[selected].ms/Number($('speed').value));}
+$('play').onclick=()=>{if(playing)pause();else{playing=true;$('play').textContent='Ⅱ Pause';tick();}};
+$('stop').onclick=()=>{pause();selected=0;render();};
+$('speed').oninput=()=>{$('speedLabel').textContent=$('speed').value+'×';if(playing){clearTimeout(timer);tick();}};
+$('add').onclick=()=>change(()=>{frames.splice(selected+1,0,blank('Frame '+(frames.length+1),frames[selected].ms));selected++;});
+$('duplicate').onclick=()=>change(()=>{frames.splice(selected+1,0,JSON.parse(JSON.stringify(frames[selected])));selected++;});
+$('delete').onclick=()=>{if(frames.length>1)change(()=>{frames.splice(selected,1);selected=Math.min(selected,frames.length-1);});};
+for(const [id,dir] of [['previous',-1],['next',1]])$(id).onclick=()=>change(()=>{let n=selected+dir;if(n>=0&&n<frames.length){[frames[selected],frames[n]]=[frames[n],frames[selected]];selected=n;}});
+$('undo').onclick=()=>{pause();if(history.length){let d=JSON.parse(history.pop());frames=d.frames;selected=d.selected;projectName=d.projectName;persist();render();}};
+$('duration').onchange=()=>{let n=Number($('duration').value);if(n>=20&&n<=10000)change(()=>frames[selected].ms=n);else render();};
+$('label').onchange=()=>change(()=>frames[selected].label=$('label').value||'Frame');
+$('projectName').onchange=()=>change(()=>projectName=$('projectName').value||'My laser animation');
+$('applyDuration').onclick=()=>{let n=Number($('duration').value);if(n>=20&&n<=10000)change(()=>frames.forEach(f=>f.ms=n));};
+for(let i=0;i<10;i++){let o=document.createElement('option');o.value=i;o.textContent=i+1;$('circle').append(o);}
+for(const [id,mask] of [['fillCircle',1023],['clearCircle',0],['odd',341],['even',682]])$(id).onclick=()=>change(()=>frames[selected].masks[Number($('circle').value)]=mask);
+$('all').onclick=()=>change(()=>frames[selected].masks.fill(1023));$('clear').onclick=()=>change(()=>frames[selected].masks.fill(0));
+function download(name,text,type){let url=URL.createObjectURL(new Blob([text],{type}));let a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$('save').onclick=()=>download('laser_animation.json',JSON.stringify({version:1,name:projectName,frames},null,2),'application/json');
+$('load').onclick=()=>$('import').click();
+$('import').onchange=async()=>{try{let file=$('import').files[0];if(!file)return;if(file.size>2000000)throw Error('Project file too large.');let d=JSON.parse(await file.text()),next=validate(d);change(()=>{frames=next;selected=0;projectName=String(d.name||'Imported animation').slice(0,60);});$('status').textContent='Project imported.';}catch(e){$('status').textContent=e.message;}$('import').value='';};
+const patterns=[
+['Synchronized fill',()=>sequence('Clockwise fill',10,160,p=>(1<<(p+1))-1)],
+['Reverse fill',()=>sequence('Counterclockwise fill',10,160,p=>1023^((1<<(9-p))-1))],
+['Opposite points',()=>Array.from({length:10},(_,p)=>({label:'Opposite '+(p+1),ms:160,masks:Array(10).fill((1<<p)|(1<<((p+5)%10)))}))],
+['Center → ends',()=>Array.from({length:5},(_,p)=>({label:'Outward '+(p+1),ms:220,masks:Array.from({length:10},(_,r)=>r===4-p||r===5+p?1023:0)}))],
+['Ends → center',()=>Array.from({length:5},(_,p)=>({label:'Inward '+(p+1),ms:220,masks:Array.from({length:10},(_,r)=>r===p||r===9-p?1023:0)}))],
+// Firmware note: keep rows enabled throughout strobing and switch the columns.
+// #define COLUMN_ON_LEVEL 1
+// #define ROW_ON_LEVEL    0
+['Strobing',()=>[1023,0].map((mask,p)=>makeFrame(p?'All off':'All on',320,()=>mask))],
+];
+const descriptions=[
+'Every circle fills together, clockwise from position 1. Each position stays lit as the next one turns on.',
+'Every circle fills together, counterclockwise from position 10. Each position stays lit as the next one turns on.',
+'Two points, five positions apart, rotate together on every circle like a spinning diameter.',
+'Two fully lit circles start in the middle and travel outward to the ends.',
+'Two fully lit circles start at the ends and travel inward to the middle.',
+'All 100 points turn on together, then turn off together.',
+];
+const makeFrame=(label,ms,fn)=>({label,ms,masks:Array.from({length:10},(_,r)=>fn(r))});
+patterns.push(
+['Circle shuttle',()=>[0,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1].map((p,i)=>makeFrame('Shuttle '+(i+1),150,r=>r===p?1023:0))],
+['Growing halo',()=>[1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2].map((n,i)=>makeFrame('Halo '+(i+1),130,()=> (1<<n)-1))],
+['Zipper reveal',()=>Array.from({length:20},(_,p)=>makeFrame('Zipper '+(p+1),130,r=>p<10?(r<=p?1023:0):(r>p-10?1023:0)))],
+['Radar sector',()=>Array.from({length:10},(_,p)=>makeFrame('Radar '+(p+1),190,()=> (1<<p)|(1<<((p+1)%10))|(1<<((p+2)%10))))]
+);
+descriptions.push(
+'One complete circle travels from left to right, then returns. End circles are shown once per turn.',
+'Every circle gradually fills clockwise from position 1, then shrinks back. This changes the number of lit points, not their individual brightness.',
+'Circles fill one after another from left to right, then clear in the same direction.',
+'A three-position sector rotates clockwise in sync on all circles, creating a sweeping radar effect.'
+);
+// Additional named patterns: one ten-bit mask per circle.
+const bit=p=>1<<((p%10+10)%10);
+const sequence=(name,n,ms,fn)=>Array.from({length:n},(_,p)=>makeFrame(name+' '+(p+1),ms,r=>fn(p,r)));
+const extras=[
+['Mirror fan','Two points open symmetrically from position 1, meet at position 6, then close again. All circles move together.',()=>sequence('Fan',10,180,(p,r)=>{let q=p<=5?p:10-p;return bit(q)|bit(-q);})],
+['Curtain open and close','All circles start lit. A dark opening grows from the middle toward the ends, then the curtain closes again.',()=>sequence('Curtain',10,220,(p,r)=>{let q=p<=5?p:10-p;return Math.abs(r-4.5)>=q?1023:0;})],
+['Orbit relay','Fills one circle at a time. Each point stays lit until that circle is full. The completed circle switches off as the next begins.',()=>sequence('Relay fill',100,80,(p,r)=>r===Math.floor(p/10)?(1<<((p%10)+1))-1:0)],
+['Expanding arcs','Two arcs grow symmetrically from position 1 until the whole circle is filled, then recede. All points have equal brightness.',()=>sequence('Arcs',10,180,(p,r)=>{let q=p<=5?p:10-p,m=0;for(let j=-q;j<=q;j++)m|=bit(j);return m;})],
+['Center burst','Five stages fill circles outward from the middle. The full rig holds briefly, then every circle clears for a pause.',()=>[...sequence('Burst',5,170,(p,r)=>Math.abs(r-4.5)<=p+0.5?1023:0),makeFrame('Burst hold',350,()=>1023),makeFrame('Burst rest',400,()=>0)]],
+['Reverse growing halo','Each circle fills in the order 1, 10, 9, …, 2, then shrinks in reverse order.',()=>{const order=[0,9,8,7,6,5,4,3,2,1];return Array.from({length:18},(_,p)=>{const lit=p<10?p+1:19-p;const mask=order.slice(0,lit).reduce((m,position)=>m|bit(position),0);return makeFrame('Reverse halo '+(p+1),130,()=>mask);});}],
+['Zipper turn-off','Starts with all circles lit and switches them off one by one, from circle 1 to circle 10.',()=>sequence('Zipper off',11,130,(p,r)=>r>=p?1023:0)],
+['Reverse radar sector','A three-position sector moves counterclockwise on every circle, starting at the same position as Radar sector.',()=>sequence('Reverse radar',10,190,p=>bit(-p)|bit(1-p)|bit(2-p))]
+];
+for(const [name,description,make] of extras){patterns.push([name,make]);descriptions.push(description);}
+let previewBackup=null;
+function restorePreview(){if(!previewBackup)return;frames=previewBackup.frames;selected=previewBackup.selected;projectName=previewBackup.projectName;previewBackup=null;render();}
+const originalStop=$('stop').onclick;
+$('stop').onclick=()=>{if(previewBackup){pause();restorePreview();$('status').textContent='Preview ended. Your project is restored.';}else originalStop();};
+const originalCheckpoint=checkpoint;
+checkpoint=function(){if(previewBackup){pause();restorePreview();}originalCheckpoint();};
+for(const [i,[name,make]] of patterns.entries()){
+ let card=document.createElement('div');card.className='pattern-card';
+ let title=document.createElement('h3');title.textContent=name;
+ let description=document.createElement('p');description.textContent=descriptions[i];
+ let meta=document.createElement('p');let sample=make();meta.textContent=sample.length+' frames · '+(sample.reduce((n,f)=>n+f.ms,0)/1000).toFixed(2)+' s per cycle';
+ let actions=document.createElement('div');actions.className='bar';
+ let preview=document.createElement('button');preview.textContent='▶ Preview';
+ preview.onclick=()=>{pause();restorePreview();previewBackup={frames,selected,projectName};frames=make();selected=0;render();$('status').textContent='Preview: '+name+' — '+descriptions[i];$('play').click();};
+ let add=document.createElement('button');add.textContent='＋ Add';
+ add.onclick=()=>{pause();restorePreview();let added=make();if(frames.length+added.length>500&&!(frames.length===1&&count(frames[0])===0)){$('status').textContent='Maximum 500 frames. Delete some frames first.';return;}change(()=>{let empty=frames.length===1&&count(frames[0])===0;if(empty){frames=added;selected=0;}else{selected=frames.length;frames.push(...added);}});$('status').textContent='Added: '+name;};
+ actions.append(preview,add);card.append(title,description,meta,actions);$('presets').append(card);
+}
+// Downloads always use the saved timeline, even while a temporary preview is active.
+for(const id of ['save','export']){let handler=$(id).onclick;$(id).onclick=(e)=>{if(previewBackup){pause();restorePreview();}return handler(e);};}
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||e.target.closest('svg'))return;if(e.code==='Space'){e.preventDefault();$('play').click();}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){pause();selected=Math.max(0,Math.min(frames.length-1,selected+(e.key==='ArrowRight'?1:-1)));render();}});
+$('export').onclick=async()=>{try{let calibration=Number($('calibration').value);if(!Number.isFinite(calibration)||calibration<.01||calibration>100)throw Error('Calibration must be 0.01–100.');let base="/* STM8S105C6T6 / Cosmic C: standalone 10x10 laser chaser.\n *\n * Columns (positive): OUT1..OUT10\n * C1..C10 = PC1 PC2 PC3 PC4 PC5 PC6 PC7 PB0 PB1 PB2\n *\n * Rows (negative): OUT11..OUT20\n * R1..R10 = PB3 PD7 PB5 PB6 PB7 PD2 PD3 PD4 PD5 PD6\n *\n * OUT21..OUT24 are unused.\n * Ten separate circles in a line: rows 1..10 are left to right.\n * Columns 1..10 are matching clockwise positions on each circle.\n * Separate named patterns run sequentially.\n * Mixed frames are multiplexed; full-rig on/off frames switch columns.\n * Connect GPIOs to suitable laser driver stages, not directly to lasers.\n * Set enable levels below to match the logic at the DRIVER INPUT.\n * No button, EEPROM, timer interrupt, or old pattern code required.\n */\n#include \"stm8s105c6.h\"\n\n#define ROWS 10\n#define COLS 10\n#define SPEED 1000U /* Uncalibrated loop delay: lower = faster. */\n#define COLUMN_ON_LEVEL 1 /* HIGH enables positive column driver. */\n#define ROW_ON_LEVEL    0 /* LOW enables row driver. */\n\nvolatile unsigned char *column_ports[COLS] = {\n    &PC_ODR, &PC_ODR, &PC_ODR, &PC_ODR, &PC_ODR,\n    &PC_ODR, &PC_ODR, &PB_ODR, &PB_ODR, &PB_ODR\n};\nunsigned char column_bits[COLS] = {1,2,3,4,5,6,7,0,1,2};\n\nvolatile unsigned char *row_ports[ROWS] = {\n    &PB_ODR, &PD_ODR, &PB_ODR, &PB_ODR, &PB_ODR,\n    &PD_ODR, &PD_ODR, &PD_ODR, &PD_ODR, &PD_ODR\n};\nunsigned char row_bits[ROWS] = {3,7,5,6,7,2,3,4,5,6};\n\nvoid pin_write(volatile unsigned char *port,\n               unsigned char bit, unsigned char high)\n{\n    unsigned char mask;\n    mask = (unsigned char)(1U << bit);\n    if (high)\n        *port |= mask;\n    else\n        *port &= (unsigned char)~mask;\n}\n\nvoid column_set(unsigned char column, unsigned char on)\n{\n    pin_write(column_ports[column], column_bits[column],\n              on ? COLUMN_ON_LEVEL : !COLUMN_ON_LEVEL);\n}\n\nvoid row_set(unsigned char row, unsigned char on)\n{\n    pin_write(row_ports[row], row_bits[row],\n              on ? ROW_ON_LEVEL : !ROW_ON_LEVEL);\n}\n\nvoid all_off(void)\n{\n    unsigned char i;\n    /* Blank columns before changing row selection. */\n    for (i = 0; i < COLS; i++)\n        column_set(i, 0);\n    for (i = 0; i < ROWS; i++)\n        row_set(i, 0);\n}\n\nvoid chase_delay(unsigned int speed)\n{\n    volatile unsigned int i;\n    volatile unsigned char j;\n    for (i = 0; i < speed; i++)\n        for (j = 0; j < 100; j++)\n        {\n            /* Volatile counters prevent removal of the delay loop. */\n        }\n}\n\nvoid gpio_init(void)\n{\n    /* Set OFF latches BEFORE enabling outputs. */\n    all_off();\n    PC_CR1 |= 0xFE;\n    PC_CR2 &= (unsigned char)~0xFE;\n    PC_DDR |= 0xFE;\n\n    PB_CR1 |= 0xEF;\n    PB_CR2 &= (unsigned char)~0xEF;\n    PB_DDR |= 0xEF;\n\n    /* PD2..PD7; preserve PD0 and PD1 (SWIM). */\n    PD_CR1 |= 0xFC;\n    PD_CR2 &= (unsigned char)~0xFC;\n    PD_DDR |= 0xFC;\n}\n\n/* Required by the existing Cosmic interrupt vector table. */\n@far @interrupt void EXTI_PORTA_IRQHandler(void)\n{\n}\n\n@far @interrupt void ADC1_IRQHandler(void)\n{\n}\n\n@far @interrupt void TIM4_UPD_OVF_IRQHandler(void)\n{\n    TIM4_SR &= (unsigned char)~0x01;\n}\n\n/* Multiplexing settings: loop units, NOT milliseconds.\n * Constant 100 slots per frame keeps timing independent of lit pixel count.\n * Apparent brightness is lower than the single-laser chasers.\n */\n#define SCAN_SLOT_DELAY 2U\n#define FRAME_REPEATS 1U\n\nunsigned int circle_frame[ROWS];\n\nvoid frame_clear(void)\n{\n    unsigned char row;\n    for (row = 0; row < ROWS; row++)\n        circle_frame[row] = 0;\n}\n\nvoid frame_add(unsigned char circle, unsigned char position)\n{\n    circle_frame[circle] |= (unsigned int)(1U << position);\n}\n\n/* Show frame with no simultaneous row/column combinations.\n * Blank columns before changing rows in mixed frames.\n */\nvoid frame_show(void)\n{\n    unsigned int repeat;\n    unsigned char row, column;\n    unsigned int uniform_mask;\n\n    uniform_mask = circle_frame[0];\n    if (uniform_mask == 0U || uniform_mask == 1023U)\n    {\n        for (row = 1; row < ROWS; row++)\n            if (circle_frame[row] != uniform_mask) break;\n        if (row == ROWS)\n        {\n            for (row = 0; row < ROWS; row++) row_set(row, 1);\n            for (column = 0; column < COLS; column++)\n                column_set(column, uniform_mask != 0U);\n            for (repeat = 0; repeat < FRAME_REPEATS * ROWS * COLS; repeat++)\n                chase_delay(SCAN_SLOT_DELAY);\n            return;\n        }\n    }\n\n    all_off();\n\n    for (repeat = 0; repeat < FRAME_REPEATS; repeat++)\n    {\n        for (row = 0; row < ROWS; row++)\n        {\n            row_set(row, 1);\n            for (column = 0; column < COLS; column++)\n            {\n                if (circle_frame[row] & (unsigned int)(1U << column))\n                    column_set(column, 1);\n\n                chase_delay(SCAN_SLOT_DELAY);\n                column_set(column, 0);\n            }\n            row_set(row, 0);\n        }\n    }\n}\n\n";let data=frames.map(f=>'    {'+f.masks.map(n=>'0x'+n.toString(16).padStart(3,'0')+'U').join(', ')+', '+Math.min(65535,Math.max(1,Math.round(f.ms*calibration)))+'U}').join(',\n');let tail='\n/* Browser durations converted to hold loops, not calibrated milliseconds. */\n#define ANIMATION_FRAMES '+frames.length+'U\nconst unsigned int animation[ANIMATION_FRAMES][11] = {\n'+data+'\n};\n\nvoid play_custom_animation(void)\n{\n    unsigned int f, hold;\n    unsigned char row;\n    for (f = 0; f < ANIMATION_FRAMES; f++)\n    {\n        for (row = 0; row < ROWS; row++) circle_frame[row] = animation[f][row];\n        for (hold = 0; hold < animation[f][10]; hold++) frame_show();\n    }\n}\n\nvoid main(void)\n{\n    #asm\n        sim\n    #endasm\n    gpio_init();\n    while (1) play_custom_animation();\n}\n';download('laser_custom_animation.c',base+tail,'text/plain');$('status').textContent='C exported. Check flash capacity and calibrate timing on your STM8.';}catch(e){$('status').textContent=e.message;}};
+const exportTimeline=$('export').onclick;$('export').onclick=(e)=>{if(previewBackup){pause();restorePreview();}return exportTimeline(e);};
+render();
+</script></body></html>

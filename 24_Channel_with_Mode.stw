@@ -1,0 +1,12 @@
+;	STMicroelectronics Workspace file
+
+[Version]
+Keyword=ST7Workspace-V0.7
+
+[Project0]
+Filename=24_Channel_with_Mode.stp
+Dependencies=
+[Options]
+ActiveProject=24_Channel_with_Mode
+ActiveConfig=Debug
+AddSortedElements=0

@@ -1,0 +1,30 @@
+ADC SPEED CONTROL (current 10x10 laser firmware)
+==============================================
+main.c now reads a potentiometer on PE6 / AIN9, LQFP48 pin 24.
+Connect a 10 kohm linear potentiometer between VDDA and VSSA (ground),
+with its wiper connected to PE6. Keep input voltage within VSSA..VDDA.
+An optional 100 nF capacitor from the wiper to VSSA reduces noise.
+Low voltage gives fast patterns; high voltage gives slow patterns.
+Swap the two outside pot wires to reverse knob direction.
+
+PE6 controls all 22 animated patterns. The steady all-on boot is static.
+TIM4 IRQ23 starts an ADC conversion about every 10 ms at the reset 2 MHz clock.
+ADC1 IRQ22 stores the latest 10-bit result. Speed defaults to midscale until
+the first sample. Both animation boots initialize ADC and TIM4 interrupts.
+
+A frame weight of 220 maps to roughly 100 ms..1 second per step.
+HTML frame weights scale that range proportionally, rounded to TIM4 ticks.
+Orbit relay and the reverse single-point chase use weight 80 (roughly 40..360 ms).
+Both full-circle chases use weight 220 and direct row drive.
+Strobing uses weight 320 and switches columns with all rows enabled.
+Row relays stay selected while the POT controls how long the columns display
+each step. A dark step blanks columns and keeps the row selection.
+Rows with the same column mask share a step. Different masks play as separate
+groups, each with its own POT-controlled hold, so these frames take longer.
+Before a row selection changes, the firmware blanks the columns. It waits
+RELAY_SETTLE_TICKS after releasing rows and again after picking up rows.
+The default is 5 ticks (about 50 ms per phase). Set it to suit the fitted relays.
+
+The exact timing and brightness depend on the board. Build with Cosmic/STVD.
+Host checks: node tools/verify_circle_timing.js
+See MODE_COMPARISON.txt for the 18 HTML presets and their firmware equivalents.
